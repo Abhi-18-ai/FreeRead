@@ -7,10 +7,36 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const { login } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const { loginUser } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/'
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!email.trim() || !password.trim()) {
+      setError('Please fill in all fields.')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await loginUser(email.trim().toLowerCase(), password)
+      setSuccess('Login successful! Redirecting…')
+      setTimeout(() => {
+        navigate(from, { replace: true })
+      }, 600)
+    } catch (err) {
+      setError(err.message || 'Invalid email or password.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className='min-h-screen bg-gray-700 flex items-center justify-center px-4 py-12'>
       <div className='w-full max-w-md rounded-[2rem] border border-gray-600 bg-slate-900/95 p-10 shadow-2xl shadow-black/40'>
@@ -22,28 +48,7 @@ const Login = () => {
         {error && <div className='mb-4 rounded-3xl border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-200'>{error}</div>}
         {success && <div className='mb-4 rounded-3xl border border-emerald-400 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100'>{success}</div>}
 
-        <form
-          className='space-y-6'
-          onSubmit={(event) => {
-            event.preventDefault()
-            setError('')
-            const users = JSON.parse(localStorage.getItem('users') || '[]')
-            const matchingUser = users.find(
-              (user) => user.email.toLowerCase() === email.trim().toLowerCase() && user.password === password
-            )
-
-            if (!matchingUser) {
-              setError('Invalid email or password.')
-              return
-            }
-
-            login(matchingUser)
-            setSuccess('Login successful! Redirecting…')
-            setTimeout(() => {
-              navigate(from, { replace: true })
-            }, 600)
-          }}
-        >
+        <form className='space-y-6' onSubmit={handleSubmit}>
           <div>
             <label htmlFor='email' className='block text-sm font-medium text-gray-200'>Email address</label>
             <input
@@ -53,7 +58,8 @@ const Login = () => {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
+              disabled={isLoading}
+              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-50'
             />
           </div>
 
@@ -66,15 +72,17 @@ const Login = () => {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
+              disabled={isLoading}
+              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-50'
             />
           </div>
 
           <button
             type='submit'
-            className='w-full rounded-3xl bg-sky-500 px-4 py-3 text-base font-semibold text-white transition hover:bg-sky-400'
+            disabled={isLoading}
+            className='w-full rounded-3xl bg-sky-500 px-4 py-3 text-base font-semibold text-white transition hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Sign In
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 

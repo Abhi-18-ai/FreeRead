@@ -1,35 +1,33 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import bookCover from '../assets/book.png'
-
-const books = [
-  {
-    id: 1,
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    category: 'Fiction',
-    description: 'A moving story about choices, second chances, and the lives we could have lived.',
-  },
-  {
-    id: 2,
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    category: 'Self-Help',
-    description: 'A practical guide to building better habits and breaking bad ones in small steps.',
-  },
-  {
-    id: 3,
-    title: 'Educated',
-    author: 'Tara Westover',
-    category: 'Memoir',
-    description: 'A powerful memoir about resilience, education, and finding one’s own voice.',
-  },
-]
+import api from '../config/api'
 
 const FreeBook = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchText, setSearchText] = useState(searchParams.get('search') || '')
+  const [books, setBooks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const query = searchParams.get('search')?.trim().toLowerCase() || ''
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const response = await api.get('/book')
+        setBooks(response.data)
+      } catch (err) {
+        setError('Failed to load books. Please try again later.')
+        console.error('Error fetching books:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBooks()
+  }, [])
 
   useEffect(() => {
     setSearchText(searchParams.get('search') || '')
@@ -38,9 +36,9 @@ const FreeBook = () => {
   const filteredBooks = books.filter((book) => {
     if (!query) return true
     return (
-      book.title.toLowerCase().includes(query) ||
-      book.author.toLowerCase().includes(query) ||
-      book.category.toLowerCase().includes(query)
+      (book.title?.toLowerCase().includes(query) || false) ||
+      (book.author?.toLowerCase().includes(query) || false) ||
+      (book.category?.toLowerCase().includes(query) || false)
     )
   })
 
@@ -80,39 +78,59 @@ const FreeBook = () => {
           </button>
         </form>
 
-        {query && filteredBooks.length === 0 && (
+        {error && (
+          <div className='rounded-3xl border border-red-300 bg-red-50 p-4 text-red-800'>
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className='text-center py-8'>
+            <p className='text-gray-600'>Loading books...</p>
+          </div>
+        )}
+
+        {!loading && query && filteredBooks.length === 0 && (
           <div className='rounded-3xl border border-yellow-300 bg-yellow-50 p-4 text-yellow-800'>
             No books found for "{searchText}".
           </div>
         )}
 
-        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
-          {filteredBooks.map((book) => (
-            <div
-              key={book.id}
-              className='overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl'
-            >
-              <img
-                src={bookCover}
-                alt={book.title}
-                className='h-56 w-full object-cover transition duration-300 hover:scale-105'
-              />
+        {!loading && books.length === 0 && !error && (
+          <div className='rounded-3xl border border-blue-300 bg-blue-50 p-4 text-blue-800'>
+            No books available at the moment.
+          </div>
+        )}
 
-              <div className='p-5'>
-                <p className='text-sm font-semibold text-blue-600'>{book.category}</p>
-                <h6 className='mt-1 text-xl font-semibold text-gray-800'>{book.title}</h6>
-                <p className='mt-1 text-sm text-gray-600'>By {book.author}</p>
-                <p className='mt-3 text-sm text-gray-500'>{book.description}</p>
-                <Link
-                  to={`/book/${book.id}`}
-                  className='mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700'
-                >
-                  Read Now
-                </Link>
+        {!loading && (
+          <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
+            {filteredBooks.map((book) => (
+              <div
+                key={book._id || book.id}
+                className='overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl'
+              >
+                <img
+                  src={bookCover}
+                  alt={book.title}
+                  className='h-56 w-full object-cover transition duration-300 hover:scale-105'
+                />
+
+                <div className='p-5'>
+                  <p className='text-sm font-semibold text-blue-600'>{book.category || 'Unknown'}</p>
+                  <h6 className='mt-1 text-xl font-semibold text-gray-800'>{book.title}</h6>
+                  <p className='mt-1 text-sm text-gray-600'>By {book.author || 'Unknown'}</p>
+                  <p className='mt-3 text-sm text-gray-500'>{book.description || 'No description available'}</p>
+                  <Link
+                    to={/book/}
+                    className='mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700'
+                  >
+                    Read Now
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

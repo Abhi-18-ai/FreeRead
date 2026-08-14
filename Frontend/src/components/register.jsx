@@ -1,46 +1,44 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const Register = () => {
-  const [username, setUsername] = useState('')
+  const [fullname, setFullname] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { signup } = useAuth()
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
     setSuccess('')
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-
-    if (!username.trim() || !email.trim() || !password.trim()) {
+    if (!fullname.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all fields.')
       return
     }
 
-    const usernameTaken = users.some((user) => user.username.toLowerCase() === username.toLowerCase())
-    if (usernameTaken) {
-      setError('Username already taken. Please choose another one.')
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.')
       return
     }
 
-    const emailTaken = users.some((user) => user.email.toLowerCase() === email.toLowerCase())
-    if (emailTaken) {
-      setError('Email is already registered. Please use a different email.')
-      return
+    setIsLoading(true)
+    try {
+      await signup(fullname.trim(), email.trim().toLowerCase(), password)
+      setSuccess('Account created successfully! Redirecting to login...')
+      setTimeout(() => {
+        navigate('/login')
+      }, 1200)
+    } catch (err) {
+      setError(err.message || 'Failed to create account. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
-
-    const newUser = { username: username.trim(), email: email.trim().toLowerCase(), password }
-    users.push(newUser)
-    localStorage.setItem('users', JSON.stringify(users))
-    setSuccess('Account created successfully! Redirecting to login...')
-
-    setTimeout(() => {
-      navigate('/login')
-    }, 1200)
   }
 
   return (
@@ -56,15 +54,16 @@ const Register = () => {
 
         <form className='space-y-6' onSubmit={handleSubmit}>
           <div>
-            <label htmlFor='username' className='block text-sm font-medium text-gray-200'>Username</label>
+            <label htmlFor='fullname' className='block text-sm font-medium text-gray-200'>Full Name</label>
             <input
-              id='username'
-              name='username'
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id='fullname'
+              name='fullname'
+              value={fullname}
+              onChange={(e) => setFullname(e.target.value)}
               required
-              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
-              placeholder='Choose a username'
+              disabled={isLoading}
+              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-50'
+              placeholder='Enter your full name'
             />
           </div>
 
@@ -77,7 +76,8 @@ const Register = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
+              disabled={isLoading}
+              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-50'
               placeholder='you@example.com'
             />
           </div>
@@ -91,16 +91,18 @@ const Register = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
+              disabled={isLoading}
+              className='mt-2 w-full rounded-3xl border border-gray-700 bg-gray-800 px-4 py-3 text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-50'
               placeholder='Enter a secure password'
             />
           </div>
 
           <button
             type='submit'
-            className='w-full rounded-3xl bg-sky-500 px-4 py-3 text-base font-semibold text-white transition hover:bg-sky-400'
+            disabled={isLoading}
+            className='w-full rounded-3xl bg-sky-500 px-4 py-3 text-base font-semibold text-white transition hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Sign Up
+            {isLoading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
 
